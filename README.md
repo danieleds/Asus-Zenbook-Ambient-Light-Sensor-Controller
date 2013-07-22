@@ -22,3 +22,5 @@ How to install
    
 The generated binary file, *als-controller*, is what will monitor the light sensor. Run it and
 enable/disable the light sensor by sending SIGUSR1 to the process (e.g. `killall -s SIGUSR1 als-controller`).
+
+Better, detailed instructions coming soon
