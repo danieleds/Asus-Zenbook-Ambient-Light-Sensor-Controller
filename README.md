@@ -11,11 +11,11 @@ How to install
  1. Install the ALS Driver:
    1. Download the source code from [here](https://github.com/victorenator/als).
    2. Extract the archive, move into the directory, and compile with `make`.
-   3. Insert the module into your current kernel with `sudo lsmod als.ko`
+   3. Insert the module into your current kernel with `sudo insmod als.ko`
  2. Install *acpi_call*:
    1. Download the source code from [here](https://github.com/mkottman/acpi_call).
    2. Extract the archive, move into the directory, and compile with `make`.
-   3. Insert the module into your current kernel with `sudo lsmod acpi_call.ko`
+   3. Insert the module into your current kernel with `sudo insmod acpi_call.ko`
  3. Finally, build this controller:
    1. `qmake als-controller.pro -r -spec linux-g++-64`, or `qmake als-controller.pro -r -spec linux-g++` if you're on a 32-bit system.
    2. `make`
