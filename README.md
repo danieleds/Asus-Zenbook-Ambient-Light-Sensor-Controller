@@ -3,7 +3,7 @@ Asus Zenbook Ambient Light Sensor Controller
 
 Tested with:
 ------------
- * Ubuntu 13.04, Linux 3.8.0
+ * UX32VD + Ubuntu 13.04 + Linux 3.8.0
 
 How to install
 --------------
