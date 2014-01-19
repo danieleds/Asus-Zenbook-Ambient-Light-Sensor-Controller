@@ -6,12 +6,19 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
+#include <pthread.h>
+#include "comsock.h"
 
 using namespace std;
+
+void *IPCHandler(void *arg);
+void *clientHandler(void *arg);
 
 volatile bool active = true;
 volatile bool goneActive = false;
 volatile bool goneInactive = false;
+
+#define SOCKET_PATH "/var/run/als-controller.socket"
 
 void sigHandler(int sig)
 {
@@ -44,6 +51,8 @@ void enableALS(bool enable) {
     write(fd, buf, strlen(buf) + 1);
 
     close(fd);
+
+    printf("ALS enabled = %d\n", enable);
 }
 
 void showNotification(bool enabled) {
@@ -69,7 +78,7 @@ void setKeyboardBacklight(int percent) {
     else if(percent <= 100) value = 3;
 
     char cmd[150];
-    snprintf(cmd, 150, "echo %d | sudo tee /sys/class/leds/asus::kbd_backlight/brightness", value);
+    snprintf(cmd, 150, "echo %d | tee /sys/class/leds/asus::kbd_backlight/brightness", value);
     system(cmd);
 }
 
@@ -112,15 +121,75 @@ int getAmbientLightPercent() {
     return percent;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    struct sigaction sa;
+    /*struct sigaction sa;
     sa.sa_handler = sigHandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGUSR1, &sa, NULL);*/
+
+    if(argc == 2) {
+        int g_serverFd = openConnection(SOCKET_PATH, NTRIAL, NSEC);
+        if(g_serverFd == -1) {
+          perror("Connessione al server");
+          exit(EXIT_FAILURE);
+        }
+
+        int sent;
+        message_t msg;
+
+        msg.type = MSG_ENABLE;
+        msg.buffer = NULL;
+        msg.length = 0;
+
+        sent = sendMessage(g_serverFd, &msg);
+        if(sent == -1) {
+          perror("Registrazione");
+          //return FALSE;
+        } else {
+          // ok
+        }
+
+        closeConnection(g_serverFd);
+
+        return 0;
+    } else if(argc == 3) {
+        int g_serverFd = openConnection(SOCKET_PATH, NTRIAL, NSEC);
+        if(g_serverFd == -1) {
+          perror("Connessione al server");
+          exit(EXIT_FAILURE);
+        }
+
+        int sent;
+        message_t msg;
+
+        msg.type = MSG_DISABLE;
+        msg.buffer = NULL;
+        msg.length = 0;
+
+        sent = sendMessage(g_serverFd, &msg);
+        if(sent == -1) {
+          perror("Registrazione");
+          //return FALSE;
+        } else {
+          // ok
+        }
+
+        closeConnection(g_serverFd);
+
+        return 0;
+    }
 
     enableALS(true);
+
+    pthread_t thread_id;
+    int err = pthread_create(&thread_id, NULL, IPCHandler, NULL);
+    if(err != 0) {
+        perror("Creating thread");
+        exit(EXIT_FAILURE);
+    }
+
     showNotification(true);
 
     while(1) {
@@ -165,4 +234,45 @@ int main()
     }
 
     return 0;
+}
+
+void *IPCHandler(void *arg)
+{
+    int g_socket = createServerChannel(SOCKET_PATH);
+    if(g_socket == -1) {
+      perror("Creating socket");
+      exit(EXIT_FAILURE);
+    }
+
+    while(1)
+    {
+        int client = acceptConnection(g_socket);
+        if(client == -1) {
+            perror("Incoming connection");
+        } else {
+            pthread_t thread_id;
+            int err = pthread_create(&thread_id, NULL, clientHandler, (void *)(size_t)client);
+            if(err != 0) {
+                perror("Creating thread");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+}
+
+void *clientHandler(void *arg)
+{
+    int client = (int)(size_t)arg;
+    message_t msg;
+
+    if(receiveMessage(client, &msg) == -1)
+        return NULL;
+
+    if(msg.type == MSG_ENABLE) {
+        enableALS(true);
+    } else if(msg.type == MSG_DISABLE) {
+        enableALS(false);
+    }
+
+    return NULL;
 }
