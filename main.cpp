@@ -48,9 +48,9 @@ void enableALS(bool enable) {
 
 void showNotification(bool enabled) {
     if(enabled) {
-        system("notify-send 'Ambient light sensor enabled'");
+        system("notify-send 'Ambient light sensor enabled' -i images/active.svg");
     } else {
-        system("notify-send 'Ambient light sensor disabled'");
+        system("notify-send 'Ambient light sensor disabled' -i images/inactive.svg");
     }
 }
 
@@ -137,7 +137,7 @@ int main()
 
             if(goneActive) {
                 enableALS(true);
-                showNotification(false);
+                showNotification(true);
                 goneActive = false;
             }
         }
