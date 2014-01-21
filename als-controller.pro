@@ -4,9 +4,11 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.cpp \
+    client.cpp \
     comsock.cpp
 
 HEADERS += \
-    comsock.h
+    comsock.h \
+    client.h
 
 LIBS += -pthread

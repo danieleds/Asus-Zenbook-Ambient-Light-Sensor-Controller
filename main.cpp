@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "comsock.h"
+#include "client.h"
 
 using namespace std;
 
@@ -18,9 +19,15 @@ volatile bool active = true;
 volatile bool goneActive = false;
 volatile bool goneInactive = false;
 
-#define SOCKET_PATH "/var/run/als-controller.socket"
+int g_socket = -1;
 
-void sigHandler(int sig)
+const string SOCKET_PATH = "/var/run/als-controller.socket";
+char* C_SOCKET_PATH = (char*)SOCKET_PATH.c_str();
+
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t start = PTHREAD_COND_INITIALIZER;
+
+/*void sigHandler(int sig)
 {
     if(sig == SIGUSR1) {
         active = !active;
@@ -33,7 +40,7 @@ void sigHandler(int sig)
             goneActive = false;
         }
     }
-}
+}*/
 
 void enableALS(bool enable) {
     int fd = open("/sys/bus/acpi/devices/ACPI0008:00/ali", O_RDONLY);
@@ -41,14 +48,14 @@ void enableALS(bool enable) {
         fprintf(stderr, "Error opening /proc/acpi/call");
     }
 
-    char *buf;
+    string buf;
     if(enable) {
         buf = "\\_SB.PCI0.LPCB.EC0.TALS 0x1";
     } else {
         buf = "\\_SB.PCI0.LPCB.EC0.TALS 0x0";
     }
 
-    write(fd, buf, strlen(buf) + 1);
+    write(fd, buf.c_str(), buf.length() + 1);
 
     close(fd);
 
@@ -95,8 +102,8 @@ int getAmbientLightPercent() {
 
     // 0x32 (min illuminance), 0xC8, 0x190, 0x258, 0x320 (max illuminance).
     int als = atoi(strals);
-    printf("\"%s\"\n", strals);
-    printf("%d\n", als);
+    //printf("\"%s\"\n", strals);
+    printf("Illuminance detected: %d\n", als);
 
     float percent = 0;
 
@@ -129,56 +136,10 @@ int main(int argc, char *argv[])
     sa.sa_flags = 0;
     sigaction(SIGUSR1, &sa, NULL);*/
 
-    if(argc == 2) {
-        int g_serverFd = openConnection(SOCKET_PATH, NTRIAL, NSEC);
-        if(g_serverFd == -1) {
-          perror("Connessione al server");
-          exit(EXIT_FAILURE);
-        }
-
-        int sent;
-        message_t msg;
-
-        msg.type = MSG_ENABLE;
-        msg.buffer = NULL;
-        msg.length = 0;
-
-        sent = sendMessage(g_serverFd, &msg);
-        if(sent == -1) {
-          perror("Registrazione");
-          //return FALSE;
-        } else {
-          // ok
-        }
-
-        closeConnection(g_serverFd);
-
-        return 0;
-    } else if(argc == 3) {
-        int g_serverFd = openConnection(SOCKET_PATH, NTRIAL, NSEC);
-        if(g_serverFd == -1) {
-          perror("Connessione al server");
-          exit(EXIT_FAILURE);
-        }
-
-        int sent;
-        message_t msg;
-
-        msg.type = MSG_DISABLE;
-        msg.buffer = NULL;
-        msg.length = 0;
-
-        sent = sendMessage(g_serverFd, &msg);
-        if(sent == -1) {
-          perror("Registrazione");
-          //return FALSE;
-        } else {
-          // ok
-        }
-
-        closeConnection(g_serverFd);
-
-        return 0;
+    if(argc > 1) {
+        Client c = Client(argc, argv, SOCKET_PATH);
+        c.Run();
+        exit(EXIT_SUCCESS);
     }
 
     enableALS(true);
@@ -194,25 +155,14 @@ int main(int argc, char *argv[])
 
     while(1) {
 
+        pthread_mutex_lock(&mtx);
         while(!active) {
-            if(goneInactive) {
-                enableALS(false);
-                showNotification(false);
-                goneInactive = false;
-            }
-
-            if(!goneInactive && !goneActive)
-                sleep(60*60*2);
-
-            if(goneActive) {
-                enableALS(true);
-                showNotification(true);
-                goneActive = false;
-            }
+            pthread_cond_wait(&start, &mtx);
         }
+        pthread_mutex_unlock(&mtx);
 
         float als = getAmbientLightPercent();
-        printf("%f\%\n", als);
+        printf("Illuminance percent: %f\n", als);
         if(als <= 10) {
             setScreenBacklight(40);
             setKeyboardBacklight(100);
@@ -238,10 +188,17 @@ int main(int argc, char *argv[])
 
 void *IPCHandler(void *arg)
 {
-    int g_socket = createServerChannel(SOCKET_PATH);
+    unlink(C_SOCKET_PATH);
+    g_socket = createServerChannel(C_SOCKET_PATH);
     if(g_socket == -1) {
       perror("Creating socket");
       exit(EXIT_FAILURE);
+    }
+
+    // Permessi 777 sulla socket
+    if(chmod(C_SOCKET_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) != 0) {
+      closeServerChannel(C_SOCKET_PATH, g_socket);
+      return NULL;
     }
 
     while(1)
@@ -270,8 +227,32 @@ void *clientHandler(void *arg)
 
     if(msg.type == MSG_ENABLE) {
         enableALS(true);
+        pthread_mutex_lock(&mtx);
+        active = true;
+        pthread_mutex_unlock(&mtx);
+        pthread_cond_signal(&start);
     } else if(msg.type == MSG_DISABLE) {
+        pthread_mutex_lock(&mtx);
+        active = false;
+        pthread_mutex_unlock(&mtx);
         enableALS(false);
+    } else if(msg.type == MSG_STATUS) {
+        bool status = false;
+        pthread_mutex_lock(&mtx);
+        status = active;
+        pthread_mutex_unlock(&mtx);
+
+        int sent;
+        message_t msg;
+
+        msg.type = status ? MSG_ENABLED : MSG_DISABLED;
+        msg.buffer = NULL;
+        msg.length = 0;
+
+        sent = sendMessage(client, &msg);
+        if(sent == -1) {
+          perror("Error sending reply.");
+        }
     }
 
     return NULL;

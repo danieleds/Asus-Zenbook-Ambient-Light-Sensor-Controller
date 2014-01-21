@@ -52,14 +52,11 @@ typedef struct {
 #define MSG_ENABLE        'A'
 /** richiesta di cancellazione utente */
 #define MSG_DISABLE       'B'
-/** richiesta dello stato corrente (attivato/disattivato) */
+/** richiesta dello stato corrente (attivato/disattivato).
+    Risponde con un MSG_ENABLED o un MSG_DISABLED. */
 #define MSG_STATUS       'C'
-/** accettazione */
-#define MSG_OK           'K' 
-/** rifiuto */
-#define MSG_NO           'N' 
-/** errore */
-#define MSG_ERR          'E' 
+#define MSG_ENABLED      'D'
+#define MSG_DISABLED     'E'
 
 
 /* -= FUNZIONI =- */

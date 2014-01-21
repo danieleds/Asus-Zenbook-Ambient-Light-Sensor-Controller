@@ -12,7 +12,6 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include "comsock.h"
 
 static ssize_t readAllChars(int fd, void *buf, size_t count);
@@ -22,7 +21,6 @@ static ssize_t readAllChars(int fd, void *buf, size_t count);
   - @b E2BIG: @a path eccede UNIX_PATH_MAX
   - @b EEXIST: @a path è vuoto o esiste già
   - uno dei valori assegnati da socket()
-  - uno dei valori assegnati da chmod()
   - uno dei valori assegnati da bind()
   - uno dei valori assegnati da listen()
  */
@@ -52,15 +50,6 @@ int createServerChannel(char* path) {
     if(bind_val == 0) {
     
       if(listen(fd, SOMAXCONN) == 0) {
-
-        // Permessi 777 sulla socket
-        if(chmod(path, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) != 0) {
-          tmp_errno = errno;
-          close(fd);
-          errno = tmp_errno;
-          return -1;
-        }
-
         return fd;
       } else {
         tmp_errno = errno;

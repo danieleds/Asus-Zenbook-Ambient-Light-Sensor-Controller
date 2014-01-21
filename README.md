@@ -20,7 +20,15 @@ How to install
    1. `qmake als-controller.pro -r -spec linux-g++-64`, or `qmake als-controller.pro -r -spec linux-g++` if you're on a 32-bit system.
    2. `make`
    
-The generated binary file, *als-controller*, is what will monitor the light sensor. Run it and
-enable/disable the light sensor by sending SIGUSR1 to the process (e.g. `killall -s SIGUSR1 als-controller`).
+The generated binary file, *als-controller*, is what will monitor the light sensor.
+
+How to use
+----------
+ 1. Launch als-controller with root privileges, for example: `sudo ./als-controller`. This will be the service that monitors the light sensor.
+ 2. Use the same program with user privileges, als-controller, to control the service. Some examples:
+    
+        ./als-controller -e     // Enable the sensor
+        ./als-controller -d     // Disable the sensor
+        ./als-controller -s     // Get sensor status (enabled/disabled)
 
 Better, detailed instructions coming soon
