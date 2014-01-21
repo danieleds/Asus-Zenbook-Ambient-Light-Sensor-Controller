@@ -1,3 +1,18 @@
+/*
+   Copyright 2013-2014 Daniele Di Sarli
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. */
+
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,9 +30,7 @@ using namespace std;
 void *IPCHandler(void *arg);
 void *clientHandler(void *arg);
 
-volatile bool active = true;
-volatile bool goneActive = false;
-volatile bool goneInactive = false;
+volatile bool active = false;
 
 int g_socket = -1;
 
@@ -30,15 +43,7 @@ pthread_cond_t start = PTHREAD_COND_INITIALIZER;
 /*void sigHandler(int sig)
 {
     if(sig == SIGUSR1) {
-        active = !active;
-
-        if(active) {
-            goneActive = true;
-            goneInactive = false;
-        } else {
-            goneInactive = true;
-            goneActive = false;
-        }
+        ..
     }
 }*/
 
@@ -60,14 +65,6 @@ void enableALS(bool enable) {
     close(fd);
 
     printf("ALS enabled = %d\n", enable);
-}
-
-void showNotification(bool enabled) {
-    if(enabled) {
-        system("notify-send 'Ambient light sensor enabled' -i images/active.svg");
-    } else {
-        system("notify-send 'Ambient light sensor disabled' -i images/inactive.svg");
-    }
 }
 
 void setScreenBacklight(int percent) {
@@ -142,16 +139,12 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
 
-    enableALS(true);
-
     pthread_t thread_id;
     int err = pthread_create(&thread_id, NULL, IPCHandler, NULL);
     if(err != 0) {
         perror("Creating thread");
         exit(EXIT_FAILURE);
     }
-
-    showNotification(true);
 
     while(1) {
 
