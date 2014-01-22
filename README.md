@@ -34,7 +34,7 @@ How to use
 
 Example
 -------
-After compiling als-controller, try running switch.sh from the "example" folder.
+After compiling and running als-controller, try running switch.sh from the "example" folder.
 For an ideal integration with your system, the suggested idea is to start the service at boot,
 and then bind some script similar to switch.sh to a key combination on your keyboard.
 
