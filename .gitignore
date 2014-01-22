@@ -14,3 +14,7 @@
 
 # Qt
 als-controller.pro.user
+
+# Other
+service/Makefile
+service/als-controller
