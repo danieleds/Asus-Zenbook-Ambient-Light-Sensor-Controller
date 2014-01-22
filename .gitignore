@@ -16,5 +16,6 @@
 als-controller.pro.user
 
 # Other
-service/Makefile
-service/als-controller
+/service/Makefile
+/service/als-controller
+/tmp
