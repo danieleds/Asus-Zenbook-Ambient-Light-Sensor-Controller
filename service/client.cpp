@@ -117,7 +117,7 @@ void Client::Run()
 int Client::connectOrExit() {
     int g_serverFd = openConnection((char*)this->socketPath.c_str(), NTRIAL, NSEC);
     if(g_serverFd == -1) {
-      perror("Connessione al server");
+      perror("No connection to the server.");
       exit(EXIT_FAILURE);
     }
     return g_serverFd;
