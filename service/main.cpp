@@ -25,6 +25,9 @@
 #include <syslog.h>
 #include "comsock.h"
 #include "client.h"
+#include <errno.h>
+#include <err.h>
+#include <bsd/libutil.h>
 
 using namespace std;
 
@@ -172,43 +175,34 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
 
+    struct pidfh *pfh;
+    pid_t otherpid;
+    pfh = pidfile_open("/var/run/als-controller.pid", 0600, &otherpid);
+    if (pfh == NULL) {
+        if (errno == EEXIST) {
+                    errx(EXIT_FAILURE, "Daemon already running, pid: %jd.",
+                        (intmax_t)otherpid);
+        }
+        /* If we cannot create pidfile from other reasons, only warn. */
+        warn("Cannot open or create pidfile");
+    }
 
-    pid_t pid;
-
-    /* Fork off the parent process */
-    pid = fork();
-    if (pid < 0) {
+    if (daemon(0, 0) == -1) {
+        warn("Cannot daemonize");
+        pidfile_remove(pfh);
         exit(EXIT_FAILURE);
     }
-    /* If we got a good PID, then
-       we can exit the parent process. */
-    if (pid > 0) {
-        exit(EXIT_SUCCESS);
-    }
+
+    pidfile_write(pfh);
 
     /* Change the file mode mask */
     umask(0);
-
-    /* Create a new SID for the child process */
-    if (setsid() < 0)
-        exit(EXIT_FAILURE);
-
-    /* Change the current working directory */
-    if ((chdir("/")) < 0) {
-        /* Log any failure here */
-        exit(EXIT_FAILURE);
-    }
-
-    /* Close out the standard file descriptors */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
 
     /* Open the log file */
     openlog("als-controller", LOG_PID, LOG_DAEMON);
 
     startDaemon();
-
+    pidfile_remove(pfh);
     return 0;
 }
 
