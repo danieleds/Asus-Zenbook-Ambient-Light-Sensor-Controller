@@ -30,8 +30,6 @@
 #include <err.h>
 #include <bsd/libutil.h>
 
-#include <sstream>
-
 using namespace std;
 
 void logServerExit(int __status, int __pri, const char *fmt...);
@@ -105,7 +103,7 @@ char* acpi_call(string data) {
 
     close(fd);
 
-    syslog(LOG_DEBUG, buf);
+    //syslog(LOG_DEBUG, buf);
     return buf;
 }
 
@@ -149,33 +147,21 @@ void setKeyboardBacklight(int percent) {
 }
 
 int getAmbientLightPercent() {
-    /*int fd = open("/sys/bus/acpi/devices/ACPI0008:00/ali", O_RDONLY);
+    int fd = open("/sys/bus/acpi/devices/ACPI0008:00/ali", O_RDONLY);
     if(fd == -1) {
         logServerExit(EXIT_FAILURE, LOG_CRIT, "Error opening /sys/bus/acpi/devices/ACPI0008:00/ali");
     }
     char strals[100];
     int count = read(fd, strals, 100);
     strals[count] = '\0';
-    close(fd);*/
-
-    acpi_call("\\_SB.ATKD.ALSC");
-    acpi_call("\\_SB.PCI0.LPCB.EC0.EC0W");
-    acpi_call("\\_SB.PCI0.LPCB.EC0._QCD");
-    acpi_call("\\_SB.PCI0.LPCB.EC0._QDD");
-    char* value = acpi_call("\\_SB.ALS._ALI");
-    if(value == NULL) {
-        logServerExit(EXIT_FAILURE, LOG_CRIT, "Cannot get _SB.ALS._ALI");
-    }
+    close(fd);
 
     // 0x32 (min illuminance), 0xC8, 0x190, 0x258, 0x320 (max illuminance).
-    errno = 0;
-    int als = (int)strtol(value, NULL, 0);
-    if(errno != 0) {
-        string msg = "Unexpected return from _SB.ALS._ALI: " + string(value);
-        logServerExit(EXIT_FAILURE, LOG_CRIT, msg.c_str());
-    }
+    int als = atoi(strals);
+    //printf("\"%s\"\n", strals);
+    //printf("Illuminance detected: %d\n", als);
 
-    float percent = 50;
+    float percent = 0;
 
     switch(als) {
     case 0x32:
@@ -195,9 +181,6 @@ int getAmbientLightPercent() {
         break;
     }
 
-    stringstream ss;
-    ss << percent;
-    syslog(LOG_DEBUG, ss.str().c_str());
     return percent;
 }
 
@@ -276,11 +259,11 @@ void startDaemon()
 
     while(1) {
 
-        /*pthread_mutex_lock(&mtx);
+        pthread_mutex_lock(&mtx);
         while(!active) {
             pthread_cond_wait(&start, &mtx);
         }
-        pthread_mutex_unlock(&mtx);*/
+        pthread_mutex_unlock(&mtx);
 
         float als = getAmbientLightPercent();
         //printf("Illuminance percent: %f\n", als);
