@@ -11,4 +11,4 @@ HEADERS += \
     comsock.h \
     client.h
 
-LIBS += -pthread
+LIBS += -pthread -lbsd

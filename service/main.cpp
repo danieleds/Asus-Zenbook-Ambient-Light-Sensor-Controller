@@ -26,6 +26,9 @@
 #include <errno.h>
 #include "comsock.h"
 #include "client.h"
+#include <errno.h>
+#include <err.h>
+#include <bsd/libutil.h>
 
 #include <sstream>
 
@@ -120,14 +123,18 @@ void enableALS(bool enable) {
 }
 
 void setScreenBacklight(int percent) {
+    int ret = 0;
     char cmd[100];
     snprintf(cmd, 100, "xbacklight -set %d", percent);
-    system(cmd);
+    ret = system(cmd);
+    if (ret < 0) {
+        syslog(LOG_ERR, "Failed to set screen backlight.");
+    }
 }
 
 void setKeyboardBacklight(int percent) {
     int value = 0;
-
+    int ret = 0;
     if(percent <= 25) value = 0;
     else if(percent <= 50) value = 1;
     else if(percent <= 75) value = 2;
@@ -135,7 +142,10 @@ void setKeyboardBacklight(int percent) {
 
     char cmd[150];
     snprintf(cmd, 150, "echo %d | tee /sys/class/leds/asus::kbd_backlight/brightness", value);
-    system(cmd);
+    ret = system(cmd);
+    if (ret < 0) {
+        syslog(LOG_ERR, "Failed to set keyboard backlight.");
+    }
 }
 
 int getAmbientLightPercent() {
@@ -205,43 +215,34 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
 
+    struct pidfh *pfh;
+    pid_t otherpid;
+    pfh = pidfile_open("/var/run/als-controller.pid", 0600, &otherpid);
+    if (pfh == NULL) {
+        if (errno == EEXIST) {
+                    errx(EXIT_FAILURE, "Daemon already running, pid: %jd.",
+                        (intmax_t)otherpid);
+        }
+        /* If we cannot create pidfile from other reasons, only warn. */
+        warn("Cannot open or create pidfile");
+    }
 
-    pid_t pid;
-
-    /* Fork off the parent process */
-    pid = fork();
-    if (pid < 0) {
+    if (daemon(0, 0) == -1) {
+        warn("Cannot daemonize");
+        pidfile_remove(pfh);
         exit(EXIT_FAILURE);
     }
-    /* If we got a good PID, then
-       we can exit the parent process. */
-    if (pid > 0) {
-        exit(EXIT_SUCCESS);
-    }
+
+    pidfile_write(pfh);
 
     /* Change the file mode mask */
     umask(0);
-
-    /* Create a new SID for the child process */
-    if (setsid() < 0)
-        exit(EXIT_FAILURE);
-
-    /* Change the current working directory */
-    if ((chdir("/")) < 0) {
-        /* Log any failure here */
-        exit(EXIT_FAILURE);
-    }
-
-    /* Close out the standard file descriptors */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
 
     /* Open the log file */
     openlog("als-controller", LOG_PID, LOG_DAEMON);
 
     startDaemon();
-
+    pidfile_remove(pfh);
     return 0;
 }
 
