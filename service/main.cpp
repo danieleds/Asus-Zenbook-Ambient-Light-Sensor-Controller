@@ -105,14 +105,18 @@ void enableALS(bool enable) {
 }
 
 void setScreenBacklight(int percent) {
+    int ret = 0;
     char cmd[100];
     snprintf(cmd, 100, "xbacklight -set %d", percent);
-    system(cmd);
+    ret = system(cmd);
+    if (ret < 0) {
+        syslog(LOG_ERR, "Failed to set screen backlight.");
+    }
 }
 
 void setKeyboardBacklight(int percent) {
     int value = 0;
-
+    int ret = 0;
     if(percent <= 25) value = 0;
     else if(percent <= 50) value = 1;
     else if(percent <= 75) value = 2;
@@ -120,7 +124,10 @@ void setKeyboardBacklight(int percent) {
 
     char cmd[150];
     snprintf(cmd, 150, "echo %d | tee /sys/class/leds/asus::kbd_backlight/brightness", value);
-    system(cmd);
+    ret = system(cmd);
+    if (ret < 0) {
+        syslog(LOG_ERR, "Failed to set keyboard backlight.");
+    }
 }
 
 int getAmbientLightPercent() {
