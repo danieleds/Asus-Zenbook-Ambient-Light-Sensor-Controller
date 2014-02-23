@@ -18,10 +18,13 @@ How to install
    2. Extract the archive, move into the directory, and compile with `make`.
    3. Insert the module into your current kernel with `sudo insmod acpi_call.ko`
  3. Finally, build this controller:
-   1. `qmake als-controller.pro -r -spec linux-g++-64`, or `qmake als-controller.pro -r -spec linux-g++` if you're on a 32-bit system.
-   2. `make`
+   1. `cd service`
+   2. `qmake als-controller.pro -r -spec linux-g++-64`, or `qmake als-controller.pro -r -spec linux-g++` if you're on a 32-bit system.
+   3. `make`
    
 The generated binary file, *als-controller*, is what will monitor the light sensor.
+
+Note that, for the driver to see the sensor, you should set `acpi_osi='!Windows 2012'` (e.g. at the end of GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub) and then reboot.
 
 How to use
 ----------
