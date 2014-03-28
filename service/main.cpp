@@ -109,6 +109,7 @@ char* acpi_call(string data) {
 
 void enableALS(bool enable) {
     if(enable) {
+        acpi_call("\\_SB.ATKD.ALSC 0x1");
         acpi_call("\\_SB.PCI0.LPCB.EC0.TALS 0x1");
     } else {
         acpi_call("\\_SB.PCI0.LPCB.EC0.TALS 0x0");
