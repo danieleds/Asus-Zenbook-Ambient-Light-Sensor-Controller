@@ -38,6 +38,7 @@ void enableALS(bool enable);
 void *IPCHandler(void *arg);
 void *clientHandler(void *arg);
 char* acpi_call(string data);
+int getLidStatus();
 
 volatile bool active = false;
 
@@ -144,6 +145,31 @@ void setKeyboardBacklight(int percent) {
     ret = system(cmd);
     if (ret < 0) {
         syslog(LOG_ERR, "Failed to set keyboard backlight.");
+    }
+}
+
+/**
+ * @brief getLidStatus
+ * @return 1 if opened, 0 if closed, -1 on error, -2 if unknown
+ */
+int getLidStatus() {
+    int fd = open("/proc/acpi/button/lid/LID/state", O_RDONLY);
+    if(fd == -1) {
+        syslog(LOG_ERR, "Error opening /sys/bus/acpi/devices/ACPI0008:00/ali");
+        return -1;
+    } else {
+        char str[100];
+        int count = read(fd, str, 100);
+        str[count] = '\0';
+        close(fd);
+        string s = string(str);
+        if(s.find("open") != string::npos) {
+            return 1;
+        } else if(s.find("closed") != string::npos) {
+            return 0;
+        } else {
+            return -2;
+        }
     }
 }
 
@@ -266,23 +292,29 @@ void startDaemon()
         }
         pthread_mutex_unlock(&mtx);
 
-        float als = getAmbientLightPercent();
-        //printf("Illuminance percent: %f\n", als);
-        if(als <= 10) {
-            setScreenBacklight(40);
-            setKeyboardBacklight(100);
-        } else if(als <= 25) {
-            setScreenBacklight(60);
+        if(getLidStatus() == 0) {
             setKeyboardBacklight(0);
-        } else if(als <= 50) {
-            setScreenBacklight(75);
-            setKeyboardBacklight(0);
-        } else if(als <= 75) {
-            setScreenBacklight(90);
-            setKeyboardBacklight(0);
-        } else if(als <= 100) {
-            setScreenBacklight(100);
-            setKeyboardBacklight(0);
+        } else {
+
+            float als = getAmbientLightPercent();
+            //printf("Illuminance percent: %f\n", als);
+
+            if(als <= 10) {
+                setScreenBacklight(40);
+                setKeyboardBacklight(100);
+            } else if(als <= 25) {
+                setScreenBacklight(60);
+                setKeyboardBacklight(0);
+            } else if(als <= 50) {
+                setScreenBacklight(75);
+                setKeyboardBacklight(0);
+            } else if(als <= 75) {
+                setScreenBacklight(90);
+                setKeyboardBacklight(0);
+            } else if(als <= 100) {
+                setScreenBacklight(100);
+                setKeyboardBacklight(0);
+            }
         }
 
         sleep(3);
