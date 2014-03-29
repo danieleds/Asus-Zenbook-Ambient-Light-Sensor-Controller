@@ -155,7 +155,7 @@ void setKeyboardBacklight(int percent) {
 int getLidStatus() {
     int fd = open("/proc/acpi/button/lid/LID/state", O_RDONLY);
     if(fd == -1) {
-        syslog(LOG_ERR, "Error opening /sys/bus/acpi/devices/ACPI0008:00/ali");
+        syslog(LOG_ERR, "Error opening /proc/acpi/button/lid/LID/state");
         return -1;
     } else {
         char str[100];
