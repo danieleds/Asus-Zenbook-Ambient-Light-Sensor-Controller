@@ -1,6 +1,3 @@
-[submodule "acpi_call"]
-	path = acpi_call
-	url = git@github.com:mkottman/acpi_call.git
 [submodule "als_driver"]
 	path = als_driver
 	url = git@github.com:victorenator/als.git
