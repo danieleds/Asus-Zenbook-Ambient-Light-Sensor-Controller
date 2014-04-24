@@ -11,9 +11,9 @@ public:
     void Run();
 
 private:
-    bool enable = false;
-    bool disable = false;
-    bool status = false;
+    bool enable;
+    bool disable;
+    bool status;
     string socketPath;
     int connectOrExit();
 };

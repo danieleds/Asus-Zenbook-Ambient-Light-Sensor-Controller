@@ -32,12 +32,11 @@
 
 using namespace std;
 
-void logServerExit(int __status, int __pri, const char *fmt...);
+void logServerExit(int __status, int __pri, const char *fmt);
 void startDaemon();
 void enableALS(bool enable);
 void *IPCHandler(void *arg);
 void *clientHandler(void *arg);
-char* acpi_call(string data);
 int getLidStatus();
 
 volatile bool active = false;
@@ -53,12 +52,6 @@ pthread_cond_t start = PTHREAD_COND_INITIALIZER;
 /** Signal mask */
 static sigset_t g_sigset;
 
-/*void sigHandler(int sig)
-{
-    if(sig == SIGUSR1) {
-        ..
-    }
-}*/
 
 void *sigManager(void *arg) {
   int signum;
@@ -74,46 +67,35 @@ void *sigManager(void *arg) {
   return NULL;
 }
 
-void logServerExit(int __status, int __pri, const char *fmt...) {
+void logServerExit(int __status, int __pri, const char *fmt) {
     closeServerChannel(C_SOCKET_PATH, g_socket);
     enableALS(false);
-    syslog(__pri, fmt);
+    syslog(__pri, "%s", fmt);
     if(__status != EXIT_SUCCESS)
         syslog(LOG_INFO, "Terminated.");
     closelog();
     exit(__status);
 }
 
-char* acpi_call(string data) {
-    int fd = open("/proc/acpi/call", O_RDWR);
+void writeAttribute(string path, string data) {
+    int fd = open(path.c_str(), O_WRONLY);
     if(fd == -1) {
-        logServerExit(EXIT_FAILURE, LOG_CRIT, "Error opening /proc/acpi/call");
+        string msg = "Error opening " + path;
+        logServerExit(EXIT_FAILURE, LOG_CRIT, msg.c_str());
     }
     if(write(fd, data.c_str(), data.length() + 1) == -1) {
-        syslog(LOG_ERR, "Error writing to /proc/acpi/call");
-        return NULL;
-    }
-
-    int buf_size = 100;
-    char* buf = (char*)calloc(buf_size, sizeof(char));
-    int nread = read(fd, buf, buf_size-1);
-    if(nread == -1) {
-        syslog(LOG_ERR, "Error reading from /proc/acpi/call");
-        return NULL;
+        string msg = "Error writing to " + path;
+        logServerExit(EXIT_FAILURE, LOG_CRIT, msg.c_str());
     }
 
     close(fd);
-
-    //syslog(LOG_DEBUG, buf);
-    return buf;
 }
 
 void enableALS(bool enable) {
     if(enable) {
-        acpi_call("\\_SB.ATKD.ALSC 0x1");
-        acpi_call("\\_SB.PCI0.LPCB.EC0.TALS 0x1");
+        writeAttribute("/sys/bus/acpi/devices/ACPI0008:00/enable", "1");
     } else {
-        acpi_call("\\_SB.PCI0.LPCB.EC0.TALS 0x0");
+        writeAttribute("/sys/bus/acpi/devices/ACPI0008:00/enable", "0");
     }
 
     if (enable)
@@ -213,12 +195,6 @@ int getAmbientLightPercent() {
 
 int main(int argc, char *argv[])
 {
-    /*struct sigaction sa;
-    sa.sa_handler = sigHandler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGUSR1, &sa, NULL);*/
-
     if(argc > 1) {
         Client c = Client(argc, argv, SOCKET_PATH);
         c.Run();
@@ -260,10 +236,8 @@ void startDaemon()
 {
     syslog(LOG_NOTICE, "Started.");
 
-    /* Maschera i signal handler. La maschera viene ereditata dai thread successivi
-     * (quindi questi segnali verranno bloccati in tutti i thread).
-     * In particolare, il thread "sigthread" si occuperà di gestire tutti i segnali
-     * che qui stiamo bloccando. */
+    /* Signals blocked in all threads.
+     * sigManager is the only thread responsible to catch signals */
     sigemptyset(&g_sigset);
     sigaddset(&g_sigset, SIGINT);
     sigaddset(&g_sigset, SIGTERM);

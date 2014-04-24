@@ -25,6 +25,10 @@ Client::Client(int argc, char *argv[], string socketPath)
 {
     this->socketPath = socketPath;
 
+    enable = false;
+    disable = false;
+    status = false;
+
     if(argc >= 2) {
         string arg1(argv[1]);
         if(arg1 == "-e") {
