@@ -16,7 +16,7 @@ How to install
 **Required packages:** libbsd-dev, xbacklight.
 
  1. Install the ALS Driver:
-   1. Download the source code from [here](https://github.com/victorenator/als).
+   1. Download the source code from [here](https://github.com/danieleds/als).
    2. Extract the archive, move into the directory, and compile with `make`.
    3. Insert the module into your current kernel with `sudo insmod als.ko`
  2. Build this controller:
