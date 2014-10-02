@@ -106,11 +106,20 @@ void enableALS(bool enable) {
 
 void setScreenBacklight(int percent) {
     int ret = 0;
-    char cmd[100];
-    snprintf(cmd, 100, "xbacklight -set %d", percent);
-    ret = system(cmd);
-    if (ret < 0) {
-        syslog(LOG_ERR, "Failed to set screen backlight.");
+    char str_percent[5];
+    snprintf(str_percent, 5, "%d", percent);
+
+    __pid_t fork_ret;
+    fork_ret = fork();
+    if(fork_ret == 0) {
+        ret = execl("/usr/bin/xbacklight", "/usr/bin/xbacklight", "-set", str_percent, NULL);
+        if (ret == -1) {
+            syslog(LOG_ERR, "Failed to set screen backlight.");
+            _exit(EXIT_FAILURE);
+        }
+    } else if(fork_ret == -1) {
+        syslog(LOG_ERR, "Failed to set screen backlight (couldn't fork).");
+        _exit(EXIT_FAILURE);
     }
 }
 
@@ -124,6 +133,8 @@ void setKeyboardBacklight(int percent) {
 
     char cmd[150];
     snprintf(cmd, 150, "echo %d | tee /sys/class/leds/asus::kbd_backlight/brightness", value);
+    // FIXME system() is not reliable when running with setuid.
+    // Use execl() instead (see setScreenBacklight())
     ret = system(cmd);
     if (ret < 0) {
         syslog(LOG_ERR, "Failed to set keyboard backlight.");
