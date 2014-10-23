@@ -9,11 +9,12 @@ Tested with:
    * Ubuntu 13.04 + Linux 3.8.0
  * UX31A
    * Ubuntu 13.10
+   * Ubuntu 14.04 LTS
 
 How to install
 --------------
 
-**Required packages:** libbsd-dev, xbacklight.
+**Required packages:** libbsd-dev, xbacklight, qt4-qmake / qt5-qmake, g++
 
  1. Install the ALS Driver:
    1. Download the source code from [here](https://github.com/danieleds/als).
