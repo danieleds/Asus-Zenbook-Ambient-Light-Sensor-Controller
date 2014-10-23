@@ -8,8 +8,8 @@ Tested with:
    * Ubuntu 13.10 + Linux 3.11.0
    * Ubuntu 13.04 + Linux 3.8.0
  * UX31A
+   * Ubuntu 14.04
    * Ubuntu 13.10
-   * Ubuntu 14.04 LTS
 
 How to install
 --------------
