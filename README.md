@@ -13,7 +13,7 @@ Tested with:
 How to install
 --------------
 
-**Required packages:** libbsd-dev, xbacklight, qt4-qmake / qt5-qmake.
+**Required packages:** libbsd-dev, xbacklight, qt4-qmake / qt5-qmake, g++
 
  1. Install the ALS Driver:
    1. Download the source code from [here](https://github.com/danieleds/als).
