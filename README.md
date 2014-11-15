@@ -47,6 +47,8 @@ Troubleshooting
 ---------------
 If als-controller isn't working, a possible cause is that the driver can't see the sensor. Try setting the boot option `acpi_osi='!Windows 2012'` (e.g. at the end of GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub) and then reboot.
 
+In addition, you can check als-controller logs with `cat /var/log/syslog | grep als-controller`.
+
 Thanks
 ------
  * Diego - https://github.com/Voskot
