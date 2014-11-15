@@ -4,6 +4,7 @@ Asus Zenbook Ambient Light Sensor Controller
 Tested with:
 ------------
  * UX32VD
+   * Ubuntu 14.10 + Linux 3.16.0
    * Ubuntu 14.04 + Linux 3.13.0
    * Ubuntu 13.10 + Linux 3.11.0
    * Ubuntu 13.04 + Linux 3.8.0
@@ -27,8 +28,6 @@ How to install
    
 The generated binary file, *als-controller*, is what will monitor the light sensor.
 
-Note that, for the driver to see the sensor, you should set `acpi_osi='!Windows 2012'` (e.g. at the end of GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub) and then reboot.
-
 How to use
 ----------
  1. Launch als-controller with root privileges, for example: `sudo ./als-controller`. This will be the service that monitors the light sensor.
@@ -43,6 +42,10 @@ Example
 After compiling and running als-controller, try running switch.sh from the "example" folder.
 For an ideal integration with your system, the suggested idea is to start the service at boot,
 and then bind some script similar to switch.sh to a key combination on your keyboard.
+
+Troubleshooting
+---------------
+If als-controller isn't working, a possible cause is that the driver can't see the sensor. Try setting the boot option `acpi_osi='!Windows 2012'` (e.g. at the end of GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub) and then reboot.
 
 Thanks
 ------
