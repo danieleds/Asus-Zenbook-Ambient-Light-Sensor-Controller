@@ -107,7 +107,7 @@ void enableALS(bool enable) {
 void setScreenBacklight(int percent) {
     int ret = 0;
     char cmd[100];
-    snprintf(cmd, 100, "xbacklight -set %d", percent);
+    snprintf(cmd, sizeof(cmd), "echo %d | tee /sys/class/backlight/acpi_video0/brightness", percent/10);
     ret = system(cmd);
     if (ret < 0) {
         syslog(LOG_ERR, "Failed to set screen backlight.");
