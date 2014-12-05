@@ -104,10 +104,29 @@ void enableALS(bool enable) {
         syslog(LOG_INFO, "ALS disabled");
 }
 
+int getScreenBacklightMax()
+{
+    int fd = open("/sys/class/backlight/acpi_video0/max_brightness", O_RDONLY);
+    if(fd == -1) {
+        syslog(LOG_ERR, "Error opening /sys/class/backlight/acpi_video0/max_brightness");
+        return 0;
+    }
+    
+    char str[100];
+    int count = read(fd, str, sizeof(str));
+    if (count == -1) return 0;
+    str[count] = '\0';
+    close(fd);
+    int value=atoi(str);
+    return value;
+}
+
 void setScreenBacklight(int percent) {
     int ret = 0;
     char cmd[100];
-    snprintf(cmd, sizeof(cmd), "echo %d | tee /sys/class/backlight/acpi_video0/brightness", percent/10);
+    int maxScreenBacklight=getScreenBacklightMax(); // could be static if we are sure if it will not be changed at program lifetime
+    if (!maxScreenBacklight) maxScreenBacklight=15; // 15 is a default value
+    snprintf(cmd, sizeof(cmd), "echo %d | tee /sys/class/backlight/acpi_video0/brightness", maxScreenBacklight*percent/100);
     ret = system(cmd);
     if (ret < 0) {
         syslog(LOG_ERR, "Failed to set screen backlight.");
