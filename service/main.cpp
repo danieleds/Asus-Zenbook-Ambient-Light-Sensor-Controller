@@ -161,6 +161,7 @@ int getLidStatus() {
     } else {
         char str[100];
         int count = read(fd, str, 100);
+	if (count == -1) return -1;
         str[count] = '\0';
         close(fd);
         string s = string(str);
@@ -181,6 +182,9 @@ int getAmbientLightPercent() {
     }
     char strals[100];
     int count = read(fd, strals, 100);
+    if (count == -1) {
+        logServerExit(EXIT_FAILURE, LOG_CRIT, "Error reading /sys/bus/acpi/devices/ACPI0008:00/ali");
+    }
     strals[count] = '\0';
     close(fd);
 
