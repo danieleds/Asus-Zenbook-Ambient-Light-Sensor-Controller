@@ -4,6 +4,7 @@ Asus Zenbook Ambient Light Sensor Controller
 Tested with:
 ------------
  * UX32VD
+   * Ubuntu 15.04 + Linux 3.19.0
    * Ubuntu 14.10 + Linux 3.16.0
    * Ubuntu 14.04 + Linux 3.13.0
    * Ubuntu 13.10 + Linux 3.11.0
@@ -15,7 +16,7 @@ Tested with:
 How to install
 --------------
 
-**Required packages:** libbsd-dev, xbacklight, qt4-qmake / qt5-qmake, g++
+**Required packages:** libbsd-dev, qt4-qmake / qt5-qmake, g++
 
  1. Install the ALS Driver:
    1. Download the source code from [here](https://github.com/danieleds/als).
