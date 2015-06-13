@@ -104,22 +104,32 @@ void enableALS(bool enable) {
         syslog(LOG_INFO, "ALS disabled");
 }
 
+int getScreenBacklightMax()
+{
+    int fd = open("/sys/class/backlight/acpi_video0/max_brightness", O_RDONLY);
+    if(fd == -1) {
+        syslog(LOG_ERR, "Error opening /sys/class/backlight/acpi_video0/max_brightness");
+        return 0;
+    }
+    
+    char str[100];
+    int count = read(fd, str, sizeof(str));
+    if (count == -1) return 0;
+    str[count] = '\0';
+    close(fd);
+    int value=atoi(str);
+    return value;
+}
+
 void setScreenBacklight(int percent) {
     int ret = 0;
-    char str_percent[5];
-    snprintf(str_percent, 5, "%d", percent);
-
-    __pid_t fork_ret;
-    fork_ret = fork();
-    if(fork_ret == 0) {
-        ret = execl("/usr/bin/xbacklight", "/usr/bin/xbacklight", "-set", str_percent, NULL);
-        if (ret == -1) {
-            syslog(LOG_ERR, "Failed to set screen backlight.");
-            _exit(EXIT_FAILURE);
-        }
-    } else if(fork_ret == -1) {
-        syslog(LOG_ERR, "Failed to set screen backlight (couldn't fork).");
-        _exit(EXIT_FAILURE);
+    char cmd[100];
+    int maxScreenBacklight=getScreenBacklightMax(); // could be static if we are sure if it will not be changed at program lifetime
+    if (!maxScreenBacklight) maxScreenBacklight=15; // 15 is a default value
+    snprintf(cmd, sizeof(cmd), "echo %d | tee /sys/class/backlight/acpi_video0/brightness", maxScreenBacklight*percent/100);
+    ret = system(cmd);
+    if (ret < 0) {
+        syslog(LOG_ERR, "Failed to set screen backlight.");
     }
 }
 
@@ -153,6 +163,7 @@ int getLidStatus() {
     } else {
         char str[100];
         int count = read(fd, str, 100);
+	if (count == -1) return -1;
         str[count] = '\0';
         close(fd);
         string s = string(str);
@@ -173,6 +184,9 @@ int getAmbientLightPercent() {
     }
     char strals[100];
     int count = read(fd, strals, 100);
+    if (count == -1) {
+        logServerExit(EXIT_FAILURE, LOG_CRIT, "Error reading /sys/bus/acpi/devices/ACPI0008:00/ali");
+    }
     strals[count] = '\0';
     close(fd);
 
