@@ -38,6 +38,7 @@ void enableALS(bool enable);
 void *IPCHandler(void *arg);
 void *clientHandler(void *arg);
 int getLidStatus();
+int fileExist(const char *filename);
 
 volatile bool active = false;
 
@@ -77,6 +78,12 @@ void logServerExit(int __status, int __pri, const char *fmt) {
     exit(__status);
 }
 
+int fileExist(const char *filename)
+{
+    struct stat buffer;
+    return (stat (filename, &buffer) == 0);
+}
+
 void writeAttribute(string path, string data) {
     int fd = open(path.c_str(), O_WRONLY);
     if(fd == -1) {
@@ -104,11 +111,23 @@ void enableALS(bool enable) {
         syslog(LOG_INFO, "ALS disabled");
 }
 
+string getScreenBacklightDevicePath() {
+    string path0 = "/sys/class/backlight/acpi_video0/";
+    string path1 = "/sys/class/backlight/intel_backlight/";
+    if (fileExist(path0.c_str())) {
+        return path0;
+    } else {
+        return path1;
+    }
+}
+
 int getScreenBacklightMax()
 {
-    int fd = open("/sys/class/backlight/acpi_video0/max_brightness", O_RDONLY);
+    string path = getScreenBacklightDevicePath() + "max_brightness";
+
+    int fd = open(path.c_str(), O_RDONLY);
     if(fd == -1) {
-        syslog(LOG_ERR, "Error opening /sys/class/backlight/acpi_video0/max_brightness");
+        syslog(LOG_ERR, "Error opening %s", path.c_str());
         return 0;
     }
     
@@ -117,16 +136,21 @@ int getScreenBacklightMax()
     if (count == -1) return 0;
     str[count] = '\0';
     close(fd);
-    int value=atoi(str);
+    int value = atoi(str);
     return value;
 }
 
 void setScreenBacklight(int percent) {
     int ret = 0;
     char cmd[100];
-    int maxScreenBacklight=getScreenBacklightMax(); // could be static if we are sure if it will not be changed at program lifetime
-    if (!maxScreenBacklight) maxScreenBacklight=15; // 15 is a default value
-    snprintf(cmd, sizeof(cmd), "echo %d | tee /sys/class/backlight/acpi_video0/brightness", maxScreenBacklight*percent/100);
+    int maxScreenBacklight = getScreenBacklightMax(); // could be static if we are sure if it will not be changed at program lifetime
+    if (!maxScreenBacklight) {
+        syslog(LOG_ERR, "Failed to get max screen backlight.");
+        return;
+    }
+
+    string path = getScreenBacklightDevicePath() + "brightness";
+    snprintf(cmd, sizeof(cmd), "echo %d | tee %s", maxScreenBacklight * percent / 100, path.c_str());
     ret = system(cmd);
     if (ret < 0) {
         syslog(LOG_ERR, "Failed to set screen backlight.");
